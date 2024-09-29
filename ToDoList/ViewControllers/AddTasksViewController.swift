@@ -107,7 +107,6 @@ final class AddTasksViewController: UIViewController {
             items.append(newItem)
         }
         
-        print("Items to save: \(items)")
         viewModel?.addTasks(tasks: items)
         coordinator?.dismiss(animated: true) { [weak self] in
             self?.taskAdded?()
@@ -123,7 +122,6 @@ final class AddTasksViewController: UIViewController {
     }
     
     @objc private func cancelButtonTapped() {
-        print("Cancel button tapped!")
         coordinator?.dismiss(animated: true, completion: nil)
     }
     
@@ -174,7 +172,6 @@ final class AddTasksViewController: UIViewController {
     }
     
     @objc private func addMoreTapped() {
-        print("Add More button tapped!")
         addNewTaskField()
     }
     

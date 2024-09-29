@@ -35,7 +35,6 @@ final class HomeViewController: UIViewController {
     }
     
     @objc private func addTasksTapped() {
-        print("Add Tasks Tapped!")
         let addTaskVC = AddTasksViewController()
         addTaskVC.coordinator = self.coordinator
         addTaskVC.taskAdded = { [weak self] in
