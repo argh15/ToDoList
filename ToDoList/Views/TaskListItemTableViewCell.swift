@@ -13,6 +13,8 @@ final class TaskListItemTableViewCell: UITableViewCell {
     private var descriptionLabel = UILabel()
     private var completedButton = UIButton(type: .custom)
     
+    var onCompletionToggle: (()->())?
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         configureTableViewCell()
@@ -26,9 +28,24 @@ final class TaskListItemTableViewCell: UITableViewCell {
         self.titleLabel.text = title
         self.descriptionLabel.text = description
         self.completedButton.isSelected = completed
+        
+        handleState(completed: completed)
+    }
+    
+    private func handleState(completed: Bool) {
+        if completed {
+            titleLabel.textColor = .systemGray
+            descriptionLabel.textColor = .systemGray2
+            completedButton.alpha = 0.6 // Make the button appear disabled
+        } else {
+            titleLabel.textColor = .label
+            descriptionLabel.textColor = .secondaryLabel
+            completedButton.alpha = 1.0 // Full visibility for active tasks
+        }
     }
     
     private func configureTableViewCell() {
+        selectionStyle = .none
         configureButton()
         configureLabels()
         
@@ -64,6 +81,7 @@ final class TaskListItemTableViewCell: UITableViewCell {
     
     @objc private func doneButtonTapped() {
         completedButton.isSelected.toggle()
+        onCompletionToggle?()
     }
     
     private func configureLabels() {
