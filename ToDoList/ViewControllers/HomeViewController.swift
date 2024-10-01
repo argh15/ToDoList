@@ -10,7 +10,7 @@ import UIKit
 final class HomeViewController: UIViewController {
     
     private var tasksTableView: UITableView!
-    private var taskListItems: [TaskListItem] = []
+//    private var taskListItems: [TaskListItem] = []
     private var viewModel: TasksViewModel?
     weak var coordinator: AppCoordinator?
     
@@ -18,14 +18,33 @@ final class HomeViewController: UIViewController {
         super.viewDidLoad()
         configureNavBar()
         configureTableView()
-        
+//        configureSearchController()
+    
         viewModel = TasksViewModel()
+        
+        viewModel?.pendingTasks.bind({ [weak self] _ in
+            self?.tasksTableView.reloadData()
+        })
+        
+        viewModel?.completedTasks.bind({ [weak self] _ in
+            self?.tasksTableView.reloadData()
+        })
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        viewModel?.getAllTasks()
-        tasksTableView.reloadData()
+        viewModel?.getAllTasks { [weak self] in
+            self?.tasksTableView.reloadData()
+        }
     }
+    
+//    private func configureSearchController() {
+//        let searchController = UISearchController(searchResultsController: nil)
+//        searchController.searchResultsUpdater = self
+//        searchController.obscuresBackgroundDuringPresentation = false
+//        searchController.searchBar.placeholder = "Search Tasks"
+//        navigationItem.searchController = searchController
+//        definesPresentationContext = true
+//    }
     
     private func configureNavBar() {
         title = "To-Do List"
@@ -38,8 +57,9 @@ final class HomeViewController: UIViewController {
         let addTaskVC = AddTasksViewController()
         addTaskVC.coordinator = self.coordinator
         addTaskVC.taskAdded = { [weak self] in
-            self?.viewModel?.getAllTasks()
-            self?.tasksTableView.reloadData()
+            self?.viewModel?.getAllTasks {
+                self?.tasksTableView.reloadData()
+            }
         }
         let navigationController = UINavigationController(rootViewController: addTaskVC)
         coordinator?.present(navigationController, animated: true, completion: nil)
@@ -84,9 +104,9 @@ extension HomeViewController: UITableViewDelegate, UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if section == 0 {
-            return viewModel?.getPendingTasks.count ?? 0  // Pending tasks count
+            return viewModel?.pendingTasks.value?.count ?? 0  // Pending tasks count
         } else {
-            return viewModel?.getCompletedTasks.count ?? 0  // Completed tasks count
+            return viewModel?.completedTasks.value?.count ?? 0  // Completed tasks count
         }
     }
     
@@ -97,12 +117,12 @@ extension HomeViewController: UITableViewDelegate, UITableViewDataSource {
         let item: Item
         
         if indexPath.section == 0 {
-            guard let taskListItemPending = viewModel?.getPendingTasks[indexPath.row] else {
+            guard let taskListItemPending = viewModel?.pendingTasks.value?[indexPath.row] else {
                 return UITableViewCell()
             }
             item = taskListItemPending
         } else {
-            guard let taskListItemCompleted = viewModel?.getCompletedTasks[indexPath.row] else {
+            guard let taskListItemCompleted = viewModel?.completedTasks.value?[indexPath.row] else {
                 return UITableViewCell()
             }
             item = taskListItemCompleted
@@ -120,32 +140,30 @@ extension HomeViewController: UITableViewDelegate, UITableViewDataSource {
         if editingStyle == .delete {
             guard let itemToDelete = viewModel?.task(at: indexPath) else { return }
             
-            viewModel?.deleteTask(itemToDelete)
-            
-            tasksTableView.reloadData()
+            viewModel?.deleteTask(itemToDelete) { [weak self] in
+                self?.tasksTableView.reloadData()
+            }
         }
     }
     
     private func handleToggleCompletion(for item: Item) {
 
         let isCompleted = item.completed
-        self.viewModel?.toggleCompleted(for: item)
-        
-        self.viewModel?.getAllTasks()
-        
-        updateTableView(for: item, wasCompleted: isCompleted)
+        self.viewModel?.toggleCompleted(for: item) { [weak self] in
+            self?.updateTableView(for: item, wasCompleted: isCompleted)
+        }
     }
     
     private func updateTableView(for item: Item, wasCompleted: Bool) {
         if wasCompleted {
-            if let index = viewModel?.getCompletedTasks.firstIndex(where: { $0.id == item.id }) {
+            if let index = viewModel?.completedTasks.value?.firstIndex(where: { $0.id == item.id }) {
                 let indexPath = IndexPath(row: index, section: 1)
                 tasksTableView.performBatchUpdates({
                     tasksTableView.deleteRows(at: [indexPath], with: .automatic)
                 }, completion: nil)
             }
         } else {
-            if let index = viewModel?.getPendingTasks.firstIndex(where: { $0.id == item.id }) {
+            if let index = viewModel?.pendingTasks.value?.firstIndex(where: { $0.id == item.id }) {
                 let indexPath = IndexPath(row: index, section: 0)
                 tasksTableView.performBatchUpdates({
                     tasksTableView.deleteRows(at: [indexPath], with: .automatic)
@@ -157,3 +175,15 @@ extension HomeViewController: UITableViewDelegate, UITableViewDataSource {
     }
 }
 
+
+//extension HomeViewController: UISearchResultsUpdating {
+//    func updateSearchResults(for searchController: UISearchController) {
+//        guard let searchText = searchController.searchBar.text, !searchText.isEmpty else {
+//            viewModel?.resetFilteredTasks()
+//            tasksTableView.reloadData()
+//            return
+//        }
+//        viewModel?.filterTasks(by: searchText)
+//        tasksTableView.reloadData()
+//    }
+//}

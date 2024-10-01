@@ -14,7 +14,7 @@ final class CoreDataManager {
     
     private init() {}
     
-    lazy var persistentContainer: NSPersistentContainer = {
+    lazy private var persistentContainer: NSPersistentContainer = {
         let container = NSPersistentContainer(name: "TaskListItems")
         container.loadPersistentStores { _, error in
             if let error = error as? NSError {
@@ -24,11 +24,11 @@ final class CoreDataManager {
         return container
     }()
     
-    var context: NSManagedObjectContext {
+    private var context: NSManagedObjectContext {
         persistentContainer.viewContext
     }
     
-    func saveContext() {
+    private func saveContext() {
         if context.hasChanges {
             do {
                 try context.save()
@@ -54,11 +54,11 @@ final class CoreDataManager {
     }
     
     func addTasks(tasks: [Item]) {
-        let dict: [[String: Any]] = tasks.map({ taskListItem in
+        let dict: [[String: Any]] = tasks.map({ item in
             return [
-                "taskTitle": taskListItem.title,
-                "taskDescription": taskListItem.description,
-                "taskCompleted": taskListItem.completed,
+                "taskTitle": item.title,
+                "taskDescription": item.description,
+                "taskCompleted": item.completed,
                 "taskID": UUID()
             ]
         })
@@ -78,7 +78,7 @@ final class CoreDataManager {
         fetchRequest.predicate = predicate
         
         do {
-            if let fetchTask = try context.fetch(fetchRequest).first(where: { $0.taskID == id }) {
+            if let fetchTask = try context.fetch(fetchRequest).first {
                 fetchTask.taskCompleted = !fetchTask.taskCompleted
             }
             saveContext()
@@ -103,19 +103,28 @@ final class CoreDataManager {
     }
     
     func deleteAllTasks() {
-        let entityNames = ["TaskListItem"]
+//        let entityNames = ["TaskListItem"]
+        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "TaskListItem")
+        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
         
-        for entityName in entityNames {
-            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
-            let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-            
-            do {
-                try context.execute(deleteRequest)
-                saveContext()
-                print("Deleted all objects from entity: \(entityName)")
-            } catch let error as NSError {
-                print("Error deleting objects from entity \(entityName): \(error.localizedDescription), \(error.userInfo)")
-            }
+        do {
+            try context.execute(deleteRequest)
+            saveContext()
+            print("Deleted all objects from entity: TaskListItem")
+        } catch let error as NSError {
+            print("Error deleting objects from entity TaskListItem: \(error.localizedDescription), \(error.userInfo)")
         }
+//        for entityName in entityNames {
+//            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
+//            let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+//            
+//            do {
+//                try context.execute(deleteRequest)
+//                saveContext()
+//                print("Deleted all objects from entity: \(entityName)")
+//            } catch let error as NSError {
+//                print("Error deleting objects from entity \(entityName): \(error.localizedDescription), \(error.userInfo)")
+//            }
+//        }
     }
 }
